@@ -2,9 +2,8 @@
 {% block content %}
 <div class="row mb-5 pb-3 border-bottom align-items-end">
     <div class="col-md-8">
-        <div class="text-uppercase text-secondary fw-bold kicker mb-2">Continental Benchmarking</div>
         <h1 class="display-6 fw-bolder text-dark mb-2">AfBench Repository</h1>
-        <p class="text-muted mb-0 fs-5">Evaluate national policy frameworks against continental standards.</p>
+        <p class="text-muted mb-0 fs-5">Analyse alignment of national policy frameworks against continental standards.</p>
     </div>
     <div class="col-md-4 text-md-end mt-4 mt-md-0">
         <button id="refreshKbBtn" class="btn btn-dark shadow-sm fw-bold px-4 py-2">
@@ -79,7 +78,7 @@
                                                 {{ meta[fw_code].title }}
                                             </div>
                                             <div class="text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
-                                                Sector: {{ meta[fw_code].sector }}
+                                                {{ meta[fw_code].sector }}
                                             </div>
                                         </div>
                                         <div>
