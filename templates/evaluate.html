@@ -1,79 +1,169 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row mb-5 pb-3 border-bottom">
+<div class="row mb-5 pb-3 border-bottom text-center">
     <div class="col-12">
         <div class="text-uppercase text-secondary fw-bold kicker mb-2">Analysis Engine</div>
         <h1 class="display-6 fw-bolder text-dark mb-0">New Benchmark Analysis</h1>
+        <p class="text-muted mt-2">Evaluate a national policy document against continental standards.</p>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white border-bottom-0 pt-4">
-                <h5 class="fw-bold mb-0 text-dark">Configuration</h5>
-            </div>
-            <div class="card-body">
+<div class="row justify-content-center" id="formContainer">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0 rounded-4 mb-4">
+            <div class="card-body p-5">
                 <form id="evalForm">
-                    <div class="mb-4">
-                        <label class="form-label fw-bold small text-uppercase text-muted">Benchmark Module</label>
-                        <select class="form-select bg-light" name="framework_type" required>
-                            {% for fw_code, fw_meta in meta.items() %}
-                                <option value="{{ fw_code }}">
-                                    {{ fw_meta.sector }}: {{ fw_meta.title }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-uppercase text-muted">Upload Document</label>
-                        <input class="form-control" type="file" name="file" id="file" required>
-                    </div>
                     
-                    <div class="form-check mb-4 mt-3">
-                        <input class="form-check-input" type="checkbox" name="include_in_db" value="yes" id="includeInDb" checked>
-                        <label class="form-check-label text-muted small" for="includeInDb">
-                            Include this document in the public AfBench database.
-                        </label>
+                    <div id="step1">
+                        <h5 class="fw-bold mb-4 text-dark text-center">Step 1: Select Framework</h5>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Benchmark Module</label>
+                            <select class="form-select form-select-lg bg-light" name="framework_type" id="frameworkSelect" required>
+                                <option value="" disabled selected>Select a module...</option>
+                                {% for fw_code, fw_meta in meta.items() %}
+                                    <option value="{{ fw_code }}" data-color="{{ fw_meta.color | default('dark') }}">
+                                        {{ fw_meta.sector }}: {{ fw_meta.title }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-dark w-100 py-3 fw-bold rounded-3" id="nextBtn" disabled>
+                            Continue to Upload →
+                        </button>
                     </div>
 
-                    <button type="submit" class="btn btn-dark w-100 py-2 fw-bold" id="submitBtn">
-                        <span id="btnText">Run Analysis</span>
-                        <span id="btnSpinner" class="spinner-border spinner-border-sm d-none"></span>
-                    </button>
+                    <div id="step2" class="d-none">
+                        <h5 class="fw-bold mb-4 text-dark text-center">Step 2: Upload Document</h5>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-uppercase text-muted">Policy Document (PDF or DOCX)</label>
+                            <input class="form-control form-control-lg bg-light" type="file" name="file" id="file" required>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary py-3 fw-bold rounded-3 px-4" id="backBtn">
+                                ← Back
+                            </button>
+                            <button type="submit" class="btn btn-primary flex-grow-1 py-3 fw-bold rounded-3" id="submitBtn">
+                                <span id="btnText">Run Analysis</span>
+                                <span id="btnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                            </button>
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="col-md-8">
-        <div id="loadingState" class="text-center py-5 d-none">
-            <div class="spinner-border text-secondary mb-3" style="width: 3rem; height: 3rem;"></div>
-            <h5 class="fw-bold text-dark">Processing Document...</h5>
-            <p class="text-muted small">AfBench is analyzing the framework against selected criteria.</p>
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center py-5 d-none" id="loadingState">
+        <div class="spinner-border text-primary mb-4" style="width: 3rem; height: 3rem;"></div>
+        <h4 class="fw-bold text-dark">AI is reading the document...</h4>
+        <p class="text-muted">This may take up to 60 seconds. Please do not close this window.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8 d-none" id="resultsArea">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 id="countryName" class="fw-bold mb-0 text-dark"></h2>
+            <button class="btn btn-sm btn-outline-dark fw-bold" onclick="window.location.reload()">New Analysis</button>
         </div>
+        
+        <div class="card shadow-lg border-0 mb-5 rounded-4 overflow-hidden">
+            <div class="card-header text-white px-4 py-3 bg-dark" id="resultsHeader">
+                <h5 class="mb-0 fw-bold" id="resultsTitle"></h5>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                
+                <div id="summaryText"></div>
 
-        <div id="resultsArea" class="d-none">
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body text-center p-4">
-                    <h2 id="countryName" class="fw-bold text-dark mb-3"></h2>
-                    <div id="gaugeChart"></div>
-                    <div id="summaryText" class="mt-4 text-start p-4 bg-light rounded text-secondary"></div>
+                <div class="row mt-5">
+                    <div class="col-md-12 text-center mb-5" id="gaugeChart"></div>
+                    <div class="col-md-12 mb-5" id="barChart"></div>
+                    <div class="col-md-10 mx-auto mb-4" id="radarChart"></div>
                 </div>
-            </div>
-            
-            <div class="row mb-4">
-                <div class="col-12"><div class="card shadow-sm border-0 p-3" id="barChart"></div></div>
-            </div>
-            <div class="row mb-4">
-                <div class="col-md-8 mx-auto"><div class="card shadow-sm border-0 p-3" id="radarChart"></div></div>
-            </div>
-
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white"><h5 class="fw-bold text-dark mb-0 pt-2">Detailed Results Matrix</h5></div>
-                <div class="card-body table-responsive" id="dataTable"></div>
+                
+                <div class="table-responsive mt-5" id="dataTable"></div>
+                
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// --- WIZARD LOGIC ---
+const step1 = document.getElementById('step1');
+const step2 = document.getElementById('step2');
+const nextBtn = document.getElementById('nextBtn');
+const backBtn = document.getElementById('backBtn');
+const frameworkSelect = document.getElementById('frameworkSelect');
+
+// Disable "Next" until a framework is chosen
+frameworkSelect.addEventListener('change', function() {
+    nextBtn.disabled = !this.value;
+});
+
+// Move to Step 2
+nextBtn.addEventListener('click', function() {
+    step1.classList.add('d-none');
+    step2.classList.remove('d-none');
+});
+
+// Move back to Step 1
+backBtn.addEventListener('click', function() {
+    step2.classList.add('d-none');
+    step1.classList.remove('d-none');
+});
+
+
+// --- FORM SUBMISSION LOGIC ---
+document.getElementById('evalForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Hide form, show loader
+    document.getElementById('formContainer').classList.add('d-none');
+    document.getElementById('loadingState').classList.remove('d-none');
+
+    const formData = new FormData(this);
+    
+    // Grab text and color from dropdown
+    const selectedText = frameworkSelect.options[frameworkSelect.selectedIndex].text;
+    const selectedColor = frameworkSelect.options[frameworkSelect.selectedIndex].getAttribute('data-color');
+    
+    try {
+        const response = await fetch('/api/evaluate', { method: 'POST', body: formData });
+        const data = await response.json();
+        
+        if (data.status === 'Success') {
+            document.getElementById('countryName').innerText = data.country + " Analytics";
+            document.getElementById('resultsTitle').innerText = selectedText;
+            
+            // Set dynamic header color
+            document.getElementById('resultsHeader').className = `card-header text-white px-4 py-3 bg-${selectedColor}`;
+            
+            // Inject charts & data
+            document.getElementById('gaugeChart').innerHTML = data.charts.gauge;
+            document.getElementById('summaryText').innerHTML = data.summary;
+            document.getElementById('barChart').innerHTML = data.charts.bar;
+            document.getElementById('radarChart').innerHTML = data.charts.radar;
+            document.getElementById('dataTable').innerHTML = data.table; 
+            
+            // Hide loader, show results
+            document.getElementById('loadingState').classList.add('d-none');
+            document.getElementById('resultsArea').classList.remove('d-none');
+        } else {
+            alert("Error: " + data.message);
+            // Revert UI if error
+            document.getElementById('loadingState').classList.add('d-none');
+            document.getElementById('formContainer').classList.remove('d-none');
+        }
+    } catch (error) {
+        alert("A network error occurred.");
+        document.getElementById('loadingState').classList.add('d-none');
+        document.getElementById('formContainer').classList.remove('d-none');
+    }
+});
+</script>
 {% endblock %}

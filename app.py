@@ -7,10 +7,9 @@ import evaluator
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
-# Dynamically ensure all folders defined in metadata exist
+# Dynamically ensure all official folders defined in metadata exist
 for fw_code, meta in evaluator.FRAMEWORK_META.items():
     os.makedirs(meta["folder"], exist_ok=True)
-os.makedirs("/tmp/afbench_temp", exist_ok=True) # Temp folder for opted-out files
 
 @app.route('/')
 @app.route('/country/<country_name>')
@@ -35,7 +34,6 @@ def evaluate_page():
 @app.route('/api/evaluate', methods=['POST'])
 def run_evaluation():
     fw_code = request.form.get('framework_type') 
-    include_in_db = request.form.get('include_in_db') == 'yes'
     
     if 'file' not in request.files or request.files['file'].filename == '':
         return jsonify({"status": "Error", "message": "No file uploaded."}), 400
@@ -43,18 +41,19 @@ def run_evaluation():
     file = request.files['file']
     filename = secure_filename(file.filename)
     
-    # NEW: Route the file based on the opt-in checkbox
-    if include_in_db:
-        target_folder = evaluator.FRAMEWORK_META[fw_code]["folder"]
-        file_path = os.path.join(target_folder, filename)
-    else:
-        file_path = os.path.join("/tmp/afbench_temp", filename)
-        
+    # NEW: Dynamically determine the sector folder for new uploads
+    meta = evaluator.FRAMEWORK_META.get(fw_code)
+    sector_folder = meta['sector'].lower().replace(' ', '_') if meta else 'general'
+    
+    upload_dir = os.path.join("new_uploads", sector_folder)
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_path = os.path.join(upload_dir, filename)
     file.save(file_path)
 
-    # We now pass 'include_in_db' and 'filename' to the engine
+    # Run the evaluation
     df, summary, bar_html, radar_html, gauge_html, percent, status, country = evaluator.evaluate_framework(
-        file_path, fw_code, save_to_db=include_in_db, filename=filename
+        file_path, fw_code, filename=filename
     )
 
     if status != "Success":
@@ -63,7 +62,7 @@ def run_evaluation():
     return jsonify({
         "status": "Success",
         "country": country,
-        "summary": markdown.markdown(summary),
+        "summary": summary, # HTML is now pre-formatted in evaluator
         "percent": percent,
         "table": df.to_html(classes="table table-striped table-bordered small", index=False),
         "charts": {"bar": bar_html, "radar": radar_html, "gauge": gauge_html}

@@ -12,6 +12,7 @@ import base64
 import PyPDF2
 from docx import Document
 import re
+import hashlib
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -38,7 +39,7 @@ def load_framework_metadata():
             code = row['FrameworkCode'].strip()
             meta_dict[code] = {
                 "sector": row['Sector'].strip(),
-                "subdomain": row['Subdomain'].strip(), # NEW: Reads the subdomain
+                "subdomain": row['Subdomain'].strip(),
                 "title": row['Title'].strip(),
                 "folder": row['Folder'].strip(),
                 "criteria_file": row['CriteriaFile'].strip(),
@@ -66,6 +67,18 @@ CRITERIA_CACHE = {}
 for fw_code, meta in FRAMEWORK_META.items():
     CRITERIA_CACHE[fw_code] = load_criteria_from_csv(meta["criteria_file"])
 
+
+# ---------- MD5 HASHING ----------
+def get_file_md5(file_path):
+    """Calculates the MD5 signature of a file."""
+    hash_md5 = hashlib.md5()
+    with open(file_path, "rb") as f:
+        # Read in chunks to handle large PDFs efficiently
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
 # ---------- LLM LOGIC ----------
 def extract_text_from_file(file_path):
     if file_path.endswith('.pdf'):
@@ -81,17 +94,14 @@ def extract_text_from_file(file_path):
 
 def detect_country(document_text, sector, subdomain):
     if not NVIDIA_API_KEY: return "Unknown Country"
-    
-    # Reconstructs EXACT Gradio string using your metadata: "teacher education framework"
-    prompt = f"""Identify which African country this {subdomain} framework document belongs to.
+    prompt = f"""Identify which African country this {subdomain} {sector.lower()} framework document belongs to.
     Look for country names, national bodies (e.g., "Kenya National Qualifications Framework", "Ghana Education Service").
     Return ONLY the country name (e.g., "Kenya", "Ghana", "Nigeria"). If uncertain, return "Unknown".
     
-    DOCUMENT TEXT (first 3000 characters):
+    DOCUMENT TEXT (first 3000 chars): 
     {document_text[:3000]}
     
     Country:"""
-    
     try:
         headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
         payload = {"model": MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": 50}
@@ -104,22 +114,15 @@ def detect_country(document_text, sector, subdomain):
 
 def build_evaluation_prompt(document_text, criteria_dict, framework_name, subdomain):
     prompt_parts = []
-    
-    # EXACT Gradio strings restored:
     prompt_parts.append(f"You are evaluating a national {subdomain} framework against the {framework_name}. ")
     prompt_parts.append("For each criterion below, select the SINGLE best description (0-5) that matches the document content. ")
     prompt_parts.append("Return ONLY a JSON object where keys are criterion IDs (e.g., 'S1' or 'Q1') and values are integers 0-5. No explanations.\n")
-    
     for cid, data in criteria_dict.items():
         prompt_parts.append(f"\n{cid} - {data['short_label']}:")
         for level, desc in data['levels'].items():
             prompt_parts.append(f"  [{level}] {desc}")
-            
     prompt_parts.append(f"\n\nDOCUMENT TEXT:\n{document_text[:20000]}\n")
-    
-    # EXACT Gradio JSON hints restored:
     prompt_parts.append("\nRespond with valid JSON only: {\"S1\": 4, \"S2\": 3, ...} or {\"Q1\": 5, \"Q2\": 4, ...}")
-    
     return "\n".join(prompt_parts)
 
 def call_nvidia_llm(prompt):
@@ -130,7 +133,6 @@ def call_nvidia_llm(prompt):
     
     content = response.json()["choices"][0]["message"]["content"].strip()
     
-    # Safely parsing the JSON block
     json_marker = "```json"
     code_marker = "```"
     
@@ -215,23 +217,61 @@ def save_knowledge_base(kb):
     os.makedirs(os.path.dirname(KNOWLEDGE_DB_FILE), exist_ok=True)
     with open(KNOWLEDGE_DB_FILE, 'w', encoding='utf-8') as f: json.dump(kb, f, indent=2)
 
+
 # ---------- EVALUATION WRAPPERS ----------
-def evaluate_framework(file_path, fw_code, save_to_db=False, filename=None):
+def evaluate_framework(file_path, fw_code, filename=None):
     if not NVIDIA_API_KEY: 
         return pd.DataFrame(), "❌ NVIDIA_API_KEY not set.", "", "", "", 0, "Error", "Unknown Country"
     
     meta = FRAMEWORK_META.get(fw_code)
     if not meta: return pd.DataFrame(), "Invalid framework type.", "", "", "", 0, "Error", "Unknown Country"
     
+    file_md5 = get_file_md5(file_path)
+    kb = load_knowledge_base()
     criteria_dict = CRITERIA_CACHE[fw_code]
     framework_name = meta["title"]
+    
+    color = meta.get('color', 'primary')
+
+    def build_summary_html(strong_list, weak_list):
+        return f"""<div class="mb-4 p-4 bg-light rounded border-start border-4 border-{color}">
+<h6 class="fw-bold text-dark text-uppercase mb-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">Key Findings</h6>
+<p class="mb-2 text-dark small"><strong><span class="text-success">🟢 Strengths:</span></strong> {', '.join(strong_list) if strong_list else 'None identified'}</p>
+<p class="mb-0 text-dark small"><strong><span class="text-danger">🔴 Priority Areas:</span></strong> {', '.join(weak_list) if weak_list else 'None - all criteria adequate'}</p>
+</div>"""
+    
+    # ==========================================
+    # 🛑 MD5 DUPLICATE INTERCEPTOR
+    # ==========================================
+    for existing_country, fw_dict in kb.get("countries", {}).items():
+        if fw_code in fw_dict and fw_dict[fw_code].get("md5") == file_md5:
+            print(f"Duplicate document detected! Loading cached results for {existing_country}...")
+            
+            saved_scores = fw_dict[fw_code]["scores"]
+            rows = []
+            for cid, data in criteria_dict.items():
+                score = int(saved_scores.get(cid, 0))
+                rows.append({"ID": cid, "Label": data['short_label'], "Section": data['section'], "Score": score, "Level": data['levels'][score]})
+            
+            df = pd.DataFrame(rows)
+            bar_img, radar_img, gauge_img, percent = generate_charts(df, existing_country, framework_name)
+            strong = df[df['Score'] >= 4]['Label'].tolist()
+            weak = df[df['Score'] <= 2]['Label'].tolist()
+            
+            return df, build_summary_html(strong, weak), f'<img src="data:image/png;base64,{bar_img}" class="img-fluid">', \
+                   f'<img src="data:image/png;base64,{radar_img}" class="img-fluid">', \
+                   f'<img src="data:image/png;base64,{gauge_img}" class="img-fluid">', \
+                   percent, "Success", existing_country
+
+    # ==========================================
+    # 🤖 NEW DOCUMENT PROCESSING (LLM)
+    # ==========================================
     sector = meta["sector"]
     subdomain = meta["subdomain"]
     
     try: text = extract_text_from_file(file_path)
     except Exception as e: return pd.DataFrame(), f"Error: {e}", "", "", "", 0, "Error", "Unknown Country"
 
-    # Pass BOTH sector and subdomain dynamically
     country = detect_country(text, sector, subdomain)
     try:
         prompt = build_evaluation_prompt(text, criteria_dict, framework_name, subdomain)
@@ -248,35 +288,12 @@ def evaluate_framework(file_path, fw_code, save_to_db=False, filename=None):
     strong = df[df['Score'] >= 4]['Label'].tolist()
     weak = df[df['Score'] <= 2]['Label'].tolist()
     
-    if save_to_db and filename and country != "Unknown Country":
-        kb = load_knowledge_base()
-        if country not in kb["countries"]: 
-            kb["countries"][country] = {}
-        kb["countries"][country][fw_code] = {
-            "filename": filename,
-            "overall_score": percent,
-            "scores": results, 
-        }
-        if "processed_docs" not in kb: 
-            kb["processed_docs"] = {}
-        kb["processed_docs"][f"{fw_code}_{filename}"] = {"mtime": os.path.getmtime(file_path)}
-        save_knowledge_base(kb)
+    # WE REMOVED THE save_to_db BLOCK HERE.
+    # The JSON database will remain pristine. New files go to new_uploads/ but the DB is untouched.
     
-    summary_md = f"""
-### **{country} - {framework_name} Evaluation Report**
-
-**Overall Alignment: {percent:.1f}%**
-
-**Scale:** 0 = Non-existent | 1 = Weak | 2 = Developing | 3 = Moderate | 4 = Strong | 5 = Excellent
-
-**🟢 Strengths ({len(strong)}):** {', '.join(strong) if strong else 'None identified'}
-
-**🔴 Priority Areas ({len(weak)}):** {', '.join(weak) if weak else 'None - all criteria adequate'}
-    """
-    
-    return df, summary_md, f'<img src="data:image/png;base64,{bar_img}" style="width:100%; max-width:900px;">', \
-           f'<img src="data:image/png;base64,{radar_img}" style="width:100%; max-width:600px;">', \
-           f'<img src="data:image/png;base64,{gauge_img}" style="width:100%; max-width:800px;">', \
+    return df, build_summary_html(strong, weak), f'<img src="data:image/png;base64,{bar_img}" class="img-fluid">', \
+           f'<img src="data:image/png;base64,{radar_img}" class="img-fluid">', \
+           f'<img src="data:image/png;base64,{gauge_img}" class="img-fluid">', \
            percent, "Success", country
 
 def scan_folders_for_documents():
@@ -302,6 +319,7 @@ def build_knowledge_base_from_documents():
         try:
             print(f"Scanning: {doc['filename']} for {doc['fw']}...")
             text = extract_text_from_file(doc["path"])
+            file_md5 = get_file_md5(doc["path"]) # Calculate MD5 during initial folder scan
             
             c_dict = CRITERIA_CACHE.get(doc["fw"])
             if not c_dict: continue
@@ -321,6 +339,7 @@ def build_knowledge_base_from_documents():
                 "filename": doc["filename"],
                 "overall_score": round((sum(scores) / (len(c_dict) * 5)) * 100, 1) if c_dict else 0,
                 "scores": results, 
+                "md5": file_md5 # <--- HASH IS SAVED HERE TOO
             }
             if "processed_docs" not in kb: kb["processed_docs"] = {}
             kb["processed_docs"][doc_id] = {"mtime": os.path.getmtime(doc["path"])}
@@ -350,8 +369,20 @@ def get_dynamic_country_results(country):
         df = pd.DataFrame(rows)
         bar_img, radar_img, gauge_img, percent = generate_charts(df, country, meta["title"])
         
+        strong = df[df['Score'] >= 4]['Label'].tolist()
+        weak = df[df['Score'] <= 2]['Label'].tolist()
+        
+        summary_html = f"""
+        <div class="mb-4 p-4 bg-light rounded border-start border-4 border-{meta.get('color', 'primary')}">
+            <h6 class="fw-bold text-dark text-uppercase mb-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">Key Findings</h6>
+            <p class="mb-2 text-dark small"><strong><span class="text-success">🟢 Strengths:</span></strong> {', '.join(strong) if strong else 'None identified'}</p>
+            <p class="mb-0 text-dark small"><strong><span class="text-danger">🔴 Priority Areas:</span></strong> {', '.join(weak) if weak else 'None - all criteria adequate'}</p>
+        </div>
+        """
+        
         results[fw_code] = {
             "meta": meta,
+            "summary": summary_html,
             "bar": f'<img src="data:image/png;base64,{bar_img}" class="img-fluid">',
             "radar": f'<img src="data:image/png;base64,{radar_img}" class="img-fluid">',
             "gauge": f'<img src="data:image/png;base64,{gauge_img}" class="img-fluid">',

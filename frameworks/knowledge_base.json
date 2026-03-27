@@ -10,7 +10,8 @@
           "S3": 0,
           "S4": 0,
           "S5": 4
-        }
+        },
+        "md5": "201c43cd2812e49eaa98411b39720671"
       }
     },
     "Ghana": {
@@ -23,7 +24,8 @@
           "S3": 0,
           "S4": 1,
           "S5": 4
-        }
+        },
+        "md5": "eddb45780a1d335bf28b27f8d2d71931"
       }
     },
     "Botswana": {
@@ -36,19 +38,20 @@
           "S3": 4,
           "S4": 4,
           "S5": 5
-        }
+        },
+        "md5": "7a25a770c75aa8ca8611f7e487fad938"
       }
     }
   },
   "processed_docs": {
     "AFSCTP_South Africa-Teaching-Standards.pdf": {
-      "mtime": 1774554130.432272
+      "mtime": 1774554130.432271
     },
     "AFSCTP_Ghana-Teaching-Standards.pdf": {
-      "mtime": 1774602389.0991113
+      "mtime": 1774626947.3353965
     },
     "AFSCTP_Botswana-Teaching-Standards.pdf": {
-      "mtime": 1774554090.3754766
+      "mtime": 1774554090.375476
     }
   }
 }
