@@ -47,4 +47,14 @@ AfBench is designed to be a "no-code" engine for policy experts. To add a new fr
 3. Restart the application. AfBench will automatically create the necessary folders and update the UI.
 
 ## License
-[Add your chosen open-source license here, e.g., MIT License]
+
+This project is dual-licensed to protect the public-interest nature of the tool:
+
+**1. Software & Code (Apache 2.0 + Commons Clause)**
+The source code of AfBench is licensed under the Apache License 2.0, with the addition of the Commons Clause. 
+* **You can:** Download, modify, distribute, and use this code for research, government, NGO, or personal public-good projects.
+* **You cannot:** Sell this software, offer it as a paid commercial Software-as-a-Service (SaaS), or charge consulting fees exclusively for its use. 
+
+**2. Data, Metadata & Rubrics (CC BY-NC-SA 4.0)**
+The criteria CSV files, metadata registries, and the resulting `knowledge_base.json` databases are licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+* If you use or adapt our benchmarking rubrics for your own reports or tools, you must provide attribution, you may not use them for commercial purposes, and you must share your adaptations under the same terms.
