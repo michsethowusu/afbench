@@ -1,0 +1,10 @@
+Flask>=3.0.0
+Werkzeug>=3.0.0
+Markdown>=3.4.0
+gradio>=4.0.0
+PyPDF2
+python-docx
+requests
+pandas
+matplotlib
+numpy

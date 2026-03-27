@@ -1,0 +1,3 @@
+FrameworkCode,Sector,Subdomain,Title,Folder,CriteriaFile,Color
+AFSCTP,Education,teacher frameworks,Standards and Competencies (AFSCTP),./frameworks/education/standards,./criteria/afsctp_criteria.csv,primary
+ATQF,Education,teacher frameworks,Qualifications Framework (ATQF/CTQF),./frameworks/education/qualifications,./criteria/atqf_criteria.csv,success

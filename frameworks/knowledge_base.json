@@ -1,0 +1,54 @@
+{
+  "countries": {
+    "South Africa": {
+      "AFSCTP": {
+        "filename": "South Africa-Teaching-Standards.pdf",
+        "overall_score": 40.0,
+        "scores": {
+          "S1": 3,
+          "S2": 3,
+          "S3": 0,
+          "S4": 0,
+          "S5": 4
+        }
+      }
+    },
+    "Ghana": {
+      "AFSCTP": {
+        "filename": "Ghana-Teaching-Standards.pdf",
+        "overall_score": 48.0,
+        "scores": {
+          "S1": 4,
+          "S2": 3,
+          "S3": 0,
+          "S4": 1,
+          "S5": 4
+        }
+      }
+    },
+    "Botswana": {
+      "AFSCTP": {
+        "filename": "Botswana-Teaching-Standards.pdf",
+        "overall_score": 80.0,
+        "scores": {
+          "S1": 4,
+          "S2": 3,
+          "S3": 4,
+          "S4": 4,
+          "S5": 5
+        }
+      }
+    }
+  },
+  "processed_docs": {
+    "AFSCTP_South Africa-Teaching-Standards.pdf": {
+      "mtime": 1774554130.432272
+    },
+    "AFSCTP_Ghana-Teaching-Standards.pdf": {
+      "mtime": 1774602389.0991113
+    },
+    "AFSCTP_Botswana-Teaching-Standards.pdf": {
+      "mtime": 1774554090.3754766
+    }
+  }
+}
