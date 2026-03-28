@@ -1,3 +1,3 @@
 FrameworkCode,Sector,Subdomain,Title,Folder,CriteriaFile,Color
-AFSCTP,Education,teacher frameworks,Standards and Competencies (AFSCTP),./frameworks/education/standards,./criteria/afsctp_criteria.csv,primary
-ATQF,Education,teacher frameworks,Qualifications Framework (ATQF/CTQF),./frameworks/education/qualifications,./criteria/atqf_criteria.csv,success
+AFSCTP,Education,teacher frameworks,Teacher Standards and Competencies (AFSCTP),./frameworks/education/teaching,./criteria/afsctp_criteria.csv,primary
+LPF,Agriculture,land frameworks,Land Policy Framework (LPF),./frameworks/agriculture/land,./criteria/lpf_criteria.csv,success

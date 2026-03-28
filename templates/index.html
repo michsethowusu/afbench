@@ -2,103 +2,144 @@
 {% block content %}
 <div class="row mb-5 pb-3 border-bottom align-items-end">
     <div class="col-md-8">
+        <div class="text-uppercase text-secondary fw-bold kicker mb-2">COUNTRY POLICY BENCHMARKS</div>
         <h1 class="display-6 fw-bolder text-dark mb-2">AfBench Repository</h1>
-        <p class="text-muted mb-0 fs-5">Analyse alignment of national policy frameworks against continental standards.</p>
+        <p class="text-muted mb-0 fs-5">Browse and analyze national policy frameworks.</p>
     </div>
     <div class="col-md-4 text-md-end mt-4 mt-md-0">
-        <button id="refreshKbBtn" class="btn btn-dark shadow-sm fw-bold px-4 py-2">
-            <span id="refreshIcon" class="me-2">⟳</span> Synchronize Data
+        <button id="refreshKbBtn" class="btn btn-dark shadow-sm fw-bold px-4 py-2 rounded-3">
+            <span id="refreshIcon" class="me-2">⟳</span> Synchronize Database
         </button>
     </div>
 </div>
 
 <div class="row">
-    <div class="col-md-3">
-        <div class="list-group shadow-sm sticky-top" style="top: 20px;">
-            <div class="list-group-item bg-light text-uppercase fw-bold text-secondary small">Regional Index</div>
-            <a href="/" class="list-group-item list-group-item-action fw-bold {% if not selected_country %}active bg-dark border-dark{% endif %}">
-                All Profiles
+    <div class="col-md-3 mb-4">
+        <div class="list-group shadow-sm sticky-top rounded-4 overflow-hidden" style="top: 20px;">
+            <a href="/" class="list-group-item list-group-item-action fw-bold py-3 {% if view_mode == 'home' %}active bg-dark border-dark{% else %}bg-light{% endif %}">
+                Home Repository
             </a>
-            {% for country in countries %}
-                <a href="/country/{{ country }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if selected_country and selected_country.name == country %}active bg-dark border-dark{% endif %}">
-                    {{ country }}
-                    <span class="badge bg-secondary rounded-pill">{{ kb.countries[country]|length }}</span>
-                </a>
+            {% for sec, fws in nav_sectors.items() %}
+                <div class="list-group-item bg-white text-uppercase fw-bold text-muted small pt-4 pb-2 border-bottom-0" style="font-size: 0.75rem; letter-spacing: 1px;">
+                    {{ sec }} Sector
+                </div>
+                {% for fw in fws %}
+                    <a href="/framework/{{ fw.code }}" class="list-group-item list-group-item-action py-2 {% if view_mode == 'framework' and ranking_data.fw_code == fw.code %}fw-bold text-dark border-start border-4 border-{{ fw.color }}{% else %}text-secondary{% endif %}" style="font-size: 0.9rem;">
+                        {{ fw.title }}
+                    </a>
+                {% endfor %}
             {% endfor %}
         </div>
     </div>
 
     <div class="col-md-9">
-        {% if selected_country %}
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="fw-bold mb-0 text-dark">{{ selected_country.name }} Analytics</h2>
-                <a href="/" class="btn btn-sm btn-outline-secondary">← Back to Index</a>
-            </div>
+        
+        {% if view_mode == 'home' %}
             
-            {% for fw_code, data in selected_country.frameworks.items() %}
-            <div class="card shadow-sm border-0 mb-5">
-                <div class="card-header bg-{{ data.meta.color | default('dark') }} text-white">
-                    <h5 class="mb-0">{{ data.meta.sector }}: {{ data.meta.title }}</h5>
-                </div>
-                <div class="card-body">
-                    
-                    {{ data.summary | safe }}
-
-                    <div class="row">
-                        <div class="col-md-12 text-center mb-4">{{ data.gauge | safe }}</div>
-                        <div class="col-md-12 mb-4">{{ data.bar | safe }}</div>
-                        <div class="col-md-8 mx-auto mb-4">{{ data.radar | safe }}</div>
+            {% for sec, fws in nav_sectors.items() %}
+            <div class="mb-5">
+                <h4 class="fw-bolder mb-4 text-dark border-bottom pb-2">{{ sec }} Policy Frameworks</h4>
+                <div class="row">
+                    {% for fw in fws %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm border-0 h-100 rounded-4">
+                            <div class="card-body p-4 rounded-4">
+                                <h5 class="fw-bold text-dark mb-3">{{ fw.title }}</h5>
+                                <p class="text-muted small mb-4">Benchmark module comparing national policies against continental standards.</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                                        {{ fw.count }} Countries Evaluated
+                                    </span>
+                                    <a href="/framework/{{ fw.code }}" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">View Rankings →</a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="table-responsive mt-4">{{ data.table | safe }}</div>
+                    {% endfor %}
                 </div>
             </div>
             {% endfor %}
 
-        {% else %}
-            <div class="row">
-                {% if not countries %}
-                    <div class="col-12 text-center mt-5 text-muted">
-                        <h4>No frameworks synchronized.</h4>
-                        <p>Run a new benchmark evaluation or click Synchronize Data to populate the repository.</p>
-                    </div>
-                {% endif %}
-                
-                {% for country in countries %}
-                <div class="col-md-6 mb-4">
-                    <a href="/country/{{ country }}" class="text-decoration-none">
-                        <div class="card shadow-sm border-0 h-100 hover-shadow" style="transition: transform 0.2s;">
-                            <div class="card-body">
-                                <h4 class="fw-bold text-dark border-bottom pb-2">{{ country }}</h4>
-                                
-                                {% for fw_code, fw_data in kb.countries[country].items() %}
-                                    {% if fw_code in meta %}
-                                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                        <div class="pe-3">
-                                            <div class="fw-bold text-dark small mb-1" style="line-height: 1.3;">
-                                                {{ meta[fw_code].title }}
-                                            </div>
-                                            <div class="text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
-                                                {{ meta[fw_code].sector }}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span class="badge {% if fw_data.overall_score >= 75 %}bg-success{% elif fw_data.overall_score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6 shadow-sm">
-                                                {{ fw_data.overall_score }}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                {% endfor %}
 
-                            </div>
-                            <div class="card-footer bg-light text-center small text-dark fw-bold border-top-0">
-                                View Analytics →
-                            </div>
-                        </div>
-                    </a>
+        {% elif view_mode == 'framework' %}
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <div class="text-uppercase text-{{ ranking_data.meta.color }} fw-bold small mb-1">{{ ranking_data.meta.sector }} Sector</div>
+                    <h2 class="fw-bold mb-0 text-dark">{{ ranking_data.meta.title }} Rankings</h2>
                 </div>
-                {% endfor %}
+                <a href="/" class="btn btn-sm btn-outline-secondary rounded-pill px-3">← Back</a>
             </div>
+
+            {% if not ranking_data.rankings %}
+                <div class="alert alert-light text-center py-5 border rounded-4 text-muted mt-4">
+                    <h5 class="fw-bold">No countries evaluated yet.</h5>
+                    <p class="mb-0">Run a new analysis to populate this framework.</p>
+                </div>
+            {% endif %}
+
+            {% for r in ranking_data.rankings %}
+            <div class="card shadow-sm border-0 mb-4 rounded-4 hover-shadow" style="transition: transform 0.2s;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <h4 class="fw-bold text-dark mb-0">{{ r.country }}</h4>
+                        <span class="badge {% if r.overall_score >= 75 %}bg-success{% elif r.overall_score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6 rounded-pill px-3 shadow-sm">
+                            {{ r.overall_score }}% Alignment
+                        </span>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-dark small text-uppercase mb-2">🟢 Strengths</h6>
+                            <p class="text-muted small mb-0" style="line-height: 1.5;">
+                                {{ r.strong | join(', ') if r.strong else 'None identified' }}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mt-3 mt-md-0">
+                            <h6 class="fw-bold text-dark small text-uppercase mb-2">🔴 Priority Areas</h6>
+                            <p class="text-muted small mb-0" style="line-height: 1.5;">
+                                {{ r.weak | join(', ') if r.weak else 'None - all criteria adequate' }}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <a href="/report/{{ ranking_data.fw_code }}/{{ r.country }}" class="btn btn-sm btn-outline-{{ ranking_data.meta.color }} fw-bold px-4 rounded-pill">
+                            Open Full Report →
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+
+        {% elif view_mode == 'report' %}
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <div class="text-uppercase text-secondary fw-bold small mb-1">{{ report_data.meta.title }}</div>
+                    <h2 class="fw-bold mb-0 text-dark">{{ report_data.country }} Full Report</h2>
+                </div>
+                <a href="/framework/{{ report_data.fw_code }}" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">← Back to Rankings</a>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-5 rounded-4 overflow-hidden">
+                <div class="card-header bg-{{ report_data.meta.color | default('dark') }} text-white py-3 px-4">
+                    <h5 class="mb-0 fw-bold">Detailed Analytics</h5>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    
+                    {{ report_data.summary | safe }}
+
+                    <div class="row mt-5">
+                        <div class="col-md-12 text-center mb-5">{{ report_data.gauge | safe }}</div>
+                        <div class="col-md-12 mb-5">{{ report_data.bar | safe }}</div>
+                        <div class="col-md-10 mx-auto mb-4">{{ report_data.radar | safe }}</div>
+                    </div>
+                    <div class="table-responsive mt-5">{{ report_data.table | safe }}</div>
+                </div>
+            </div>
+
         {% endif %}
     </div>
 </div>
@@ -106,7 +147,7 @@
 <style>
     .hover-shadow:hover {
         transform: translateY(-4px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important;
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
     }
 </style>
 

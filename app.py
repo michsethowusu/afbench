@@ -7,25 +7,40 @@ import evaluator
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
-# Dynamically ensure all official folders defined in metadata exist
 for fw_code, meta in evaluator.FRAMEWORK_META.items():
     os.makedirs(meta["folder"], exist_ok=True)
 
-@app.route('/')
-@app.route('/country/<country_name>')
-def dashboard(country_name=None):
+def get_nav_data():
+    """Helper to build the sidebar and home page data structure"""
     kb = evaluator.load_knowledge_base()
-    countries = sorted(kb["countries"].keys())
-    
-    country_data = None
-    if country_name:
-        country_data = evaluator.get_dynamic_country_results(country_name)
+    nav_sectors = {}
+    for fw_code, meta in evaluator.FRAMEWORK_META.items():
+        sec = meta['sector']
+        if sec not in nav_sectors:
+            nav_sectors[sec] = []
+        # Count how many countries have been evaluated for this framework
+        count = sum(1 for c, data in kb.get("countries", {}).items() if fw_code in data)
+        nav_sectors[sec].append({
+            "code": fw_code,
+            "title": meta['title'],
+            "color": meta.get('color', 'dark'),
+            "count": count
+        })
+    return nav_sectors
 
-    return render_template('index.html', 
-                           countries=countries, 
-                           kb=kb, 
-                           selected_country=country_data,
-                           meta=evaluator.FRAMEWORK_META)
+@app.route('/')
+def dashboard():
+    return render_template('index.html', view_mode='home', nav_sectors=get_nav_data())
+
+@app.route('/framework/<fw_code>')
+def framework_view(fw_code):
+    ranking_data = evaluator.get_framework_ranking(fw_code)
+    return render_template('index.html', view_mode='framework', nav_sectors=get_nav_data(), ranking_data=ranking_data)
+
+@app.route('/report/<fw_code>/<country>')
+def report_view(fw_code, country):
+    report_data = evaluator.get_single_report(fw_code, country)
+    return render_template('index.html', view_mode='report', nav_sectors=get_nav_data(), report_data=report_data)
 
 @app.route('/evaluate', methods=['GET'])
 def evaluate_page():
@@ -41,7 +56,6 @@ def run_evaluation():
     file = request.files['file']
     filename = secure_filename(file.filename)
     
-    # NEW: Dynamically determine the sector folder for new uploads
     meta = evaluator.FRAMEWORK_META.get(fw_code)
     sector_folder = meta['sector'].lower().replace(' ', '_') if meta else 'general'
     
@@ -51,7 +65,6 @@ def run_evaluation():
     file_path = os.path.join(upload_dir, filename)
     file.save(file_path)
 
-    # Run the evaluation
     df, summary, bar_html, radar_html, gauge_html, percent, status, country = evaluator.evaluate_framework(
         file_path, fw_code, filename=filename
     )
@@ -62,7 +75,7 @@ def run_evaluation():
     return jsonify({
         "status": "Success",
         "country": country,
-        "summary": summary, # HTML is now pre-formatted in evaluator
+        "summary": summary,
         "percent": percent,
         "table": df.to_html(classes="table table-striped table-bordered small", index=False),
         "charts": {"bar": bar_html, "radar": radar_html, "gauge": gauge_html}

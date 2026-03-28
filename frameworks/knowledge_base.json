@@ -26,6 +26,23 @@
           "S5": 4
         },
         "md5": "eddb45780a1d335bf28b27f8d2d71931"
+      },
+      "LPF": {
+        "filename": "Ghana-Land-Policy.pdf",
+        "overall_score": 64.0,
+        "scores": {
+          "S1": 4,
+          "S2": 3,
+          "S3": 3,
+          "S4": 2,
+          "S5": 4,
+          "S6": 4,
+          "S7": 2,
+          "S8": 3,
+          "S9": 3,
+          "S10": 4
+        },
+        "md5": "10fd19dec4746648b8124dc133f3eae0"
       }
     },
     "Botswana": {
@@ -41,6 +58,25 @@
         },
         "md5": "7a25a770c75aa8ca8611f7e487fad938"
       }
+    },
+    "Tanzania": {
+      "LPF": {
+        "filename": "Tanzania-Land-Policy.pdf",
+        "overall_score": 60.0,
+        "scores": {
+          "S1": 4,
+          "S2": 3,
+          "S3": 3,
+          "S4": 2,
+          "S5": 3,
+          "S6": 4,
+          "S7": 2,
+          "S8": 3,
+          "S9": 3,
+          "S10": 3
+        },
+        "md5": "29c454e1874fc281a48fa16fe5982130"
+      }
     }
   },
   "processed_docs": {
@@ -52,6 +88,12 @@
     },
     "AFSCTP_Botswana-Teaching-Standards.pdf": {
       "mtime": 1774554090.375476
+    },
+    "LPF_Ghana-Land-Policy.pdf": {
+      "mtime": 1774668524.4720376
+    },
+    "LPF_Tanzania-Land-Policy.pdf": {
+      "mtime": 1774668138.9544754
     }
   }
 }

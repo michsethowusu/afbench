@@ -348,45 +348,71 @@ def build_knowledge_base_from_documents():
     save_knowledge_base(kb)
     return kb
 
-def get_dynamic_country_results(country):
+def get_framework_ranking(fw_code):
+    """Fast query to extract rankings, strengths, and weaknesses without generating heavy charts."""
     kb = load_knowledge_base()
-    if country not in kb["countries"]: return None
+    meta = FRAMEWORK_META.get(fw_code)
+    c_dict = CRITERIA_CACHE.get(fw_code, {})
+    if not meta or not c_dict: return None
     
-    results = {}
-    for fw_code, fw_data in kb["countries"][country].items():
-        if fw_code not in FRAMEWORK_META: continue
-        saved_scores = fw_data.get("scores")
-        if not saved_scores: continue
+    rankings = []
+    for country, fw_dict in kb.get("countries", {}).items():
+        if fw_code in fw_dict:
+            saved_scores = fw_dict[fw_code].get("scores", {})
+            strong = []
+            weak = []
+            for cid, data in c_dict.items():
+                score = int(saved_scores.get(cid, 0))
+                if score >= 4: strong.append(data['short_label'])
+                elif score <= 2: weak.append(data['short_label'])
             
-        meta = FRAMEWORK_META[fw_code]
-        c_dict = CRITERIA_CACHE[fw_code]
-        
-        rows = []
-        for cid, data in c_dict.items():
-            score = int(saved_scores.get(cid, 0))
-            rows.append({"ID": cid, "Label": data['short_label'], "Section": data['section'], "Score": score, "Level": data['levels'][score]})
-        
-        df = pd.DataFrame(rows)
-        bar_img, radar_img, gauge_img, percent = generate_charts(df, country, meta["title"])
-        
-        strong = df[df['Score'] >= 4]['Label'].tolist()
-        weak = df[df['Score'] <= 2]['Label'].tolist()
-        
-        summary_html = f"""
-        <div class="mb-4 p-4 bg-light rounded border-start border-4 border-{meta.get('color', 'primary')}">
-            <h6 class="fw-bold text-dark text-uppercase mb-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">Key Findings</h6>
-            <p class="mb-2 text-dark small"><strong><span class="text-success">🟢 Strengths:</span></strong> {', '.join(strong) if strong else 'None identified'}</p>
-            <p class="mb-0 text-dark small"><strong><span class="text-danger">🔴 Priority Areas:</span></strong> {', '.join(weak) if weak else 'None - all criteria adequate'}</p>
-        </div>
-        """
-        
-        results[fw_code] = {
-            "meta": meta,
-            "summary": summary_html,
-            "bar": f'<img src="data:image/png;base64,{bar_img}" class="img-fluid">',
-            "radar": f'<img src="data:image/png;base64,{radar_img}" class="img-fluid">',
-            "gauge": f'<img src="data:image/png;base64,{gauge_img}" class="img-fluid">',
-            "table": df.to_html(classes="table table-striped table-bordered small", index=False)
-        }
-    if not results: return None
-    return {"name": country, "frameworks": results}
+            rankings.append({
+                "country": country,
+                "overall_score": fw_dict[fw_code].get("overall_score", 0),
+                "strong": strong,
+                "weak": weak
+            })
+            
+    rankings.sort(key=lambda x: x["overall_score"], reverse=True)
+    return {"meta": meta, "rankings": rankings, "fw_code": fw_code}
+
+def get_single_report(fw_code, country):
+    """Generates the heavy charts and tables for ONE specific country report."""
+    kb = load_knowledge_base()
+    if country not in kb.get("countries", {}): return None
+    fw_data = kb["countries"][country].get(fw_code)
+    if not fw_data: return None
+    
+    meta = FRAMEWORK_META[fw_code]
+    c_dict = CRITERIA_CACHE[fw_code]
+    saved_scores = fw_data.get("scores", {})
+    
+    rows = []
+    for cid, data in c_dict.items():
+        score = int(saved_scores.get(cid, 0))
+        rows.append({"ID": cid, "Label": data['short_label'], "Section": data['section'], "Score": score, "Level": data['levels'][score]})
+    
+    df = pd.DataFrame(rows)
+    bar_img, radar_img, gauge_img, percent = generate_charts(df, country, meta["title"])
+    
+    strong = df[df['Score'] >= 4]['Label'].tolist()
+    weak = df[df['Score'] <= 2]['Label'].tolist()
+    
+    color = meta.get('color', 'primary')
+    summary_html = f"""<div class="mb-4 p-4 bg-light rounded border-start border-4 border-{color}">
+<h6 class="fw-bold text-dark text-uppercase mb-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">Key Findings</h6>
+<p class="mb-2 text-dark small"><strong><span class="text-success">🟢 Strengths:</span></strong> {', '.join(strong) if strong else 'None identified'}</p>
+<p class="mb-0 text-dark small"><strong><span class="text-danger">🔴 Priority Areas:</span></strong> {', '.join(weak) if weak else 'None - all criteria adequate'}</p>
+</div>"""
+    
+    return {
+        "country": country,
+        "fw_code": fw_code,
+        "meta": meta,
+        "overall_score": percent,
+        "summary": summary_html,
+        "bar": f'<img src="data:image/png;base64,{bar_img}" class="img-fluid">',
+        "radar": f'<img src="data:image/png;base64,{radar_img}" class="img-fluid">',
+        "gauge": f'<img src="data:image/png;base64,{gauge_img}" class="img-fluid">',
+        "table": df.to_html(classes="table table-striped table-bordered small", index=False)
+    }
