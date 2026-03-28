@@ -2,29 +2,30 @@
 {% block content %}
 <div class="row mb-5 pb-3 border-bottom align-items-end">
     <div class="col-md-8">
-        <div class="text-uppercase text-secondary fw-bold kicker mb-2">COUNTRY POLICY BENCHMARKS</div>
-        <h1 class="display-6 fw-bolder text-dark mb-2">AfBench Repository</h1>
+        <div class="text-uppercase text-secondary fw-bold kicker mb-2">National Policy Benchmarks</div>
+        <h1 class="display-6 fw-bolder text-primary mb-2">AfBench Repository</h1>
         <p class="text-muted mb-0 fs-5">Explore analysis of country policy alignment with continental frameworks.</p>
     </div>
     <div class="col-md-4 text-md-end mt-4 mt-md-0">
-        <button id="refreshKbBtn" class="btn btn-dark shadow-sm fw-bold px-4 py-2 rounded-3">
-            <span id="refreshIcon" class="me-2">⟳</span> Synchronize Database
-        </button>
+        <a href="/evaluate" class="btn btn-primary shadow-sm fw-bold px-4 py-2 rounded-3">
+            <span class="me-2">➕</span> New Analysis
+        </a>
     </div>
 </div>
 
 <div class="row">
     <div class="col-md-3 mb-4">
-        <div class="list-group shadow-sm sticky-top rounded-4 overflow-hidden" style="top: 20px;">
-            <a href="/" class="list-group-item list-group-item-action fw-bold py-3 {% if view_mode == 'home' %}active bg-dark border-dark{% else %}bg-light{% endif %}">
-                Home Repository
+        <div class="list-group border-0 sticky-top bg-transparent pe-md-3" style="top: 20px;">
+            <a href="/" class="list-group-item list-group-item-action fw-bold py-3 mb-2 rounded-3 border-0 transition-hover {% if view_mode == 'home' %}bg-light text-dark shadow-sm{% else %}bg-transparent text-muted opacity-75{% endif %}">
+                 Explore Data
             </a>
+            
             {% for sec, fws in nav_sectors.items() %}
-                <div class="list-group-item bg-white text-uppercase fw-bold text-muted small pt-4 pb-2 border-bottom-0" style="font-size: 0.75rem; letter-spacing: 1px;">
+                <div class="list-group-item bg-transparent text-uppercase fw-bold text-muted small pt-4 pb-2 border-0" style="font-size: 0.70rem; letter-spacing: 1px;">
                     {{ sec }} Sector
                 </div>
                 {% for fw in fws %}
-                    <a href="/framework/{{ fw.code }}" class="list-group-item list-group-item-action py-2 {% if view_mode == 'framework' and ranking_data.fw_code == fw.code %}fw-bold text-dark border-start border-4 border-{{ fw.color }}{% else %}text-secondary{% endif %}" style="font-size: 0.9rem;">
+                    <a href="/framework/{{ fw.code }}" class="list-group-item list-group-item-action py-2 mb-1 rounded-3 border-0 transition-hover {% if view_mode == 'framework' and ranking_data.fw_code == fw.code %}fw-bold text-dark bg-white shadow-sm border-start border-4 border-secondary{% else %}bg-transparent text-muted opacity-75{% endif %}" style="font-size: 0.9rem;">
                         {{ fw.title }}
                     </a>
                 {% endfor %}
@@ -38,19 +39,19 @@
             
             {% for sec, fws in nav_sectors.items() %}
             <div class="mb-5">
-                <h4 class="fw-bolder mb-4 text-dark border-bottom pb-2">{{ sec }} Policy Frameworks</h4>
+                <h4 class="fw-bolder mb-4 text-primary border-bottom pb-2">{{ sec }} Policy Frameworks</h4>
                 <div class="row">
                     {% for fw in fws %}
                     <div class="col-md-6 mb-4">
-                        <div class="card shadow-sm border-0 h-100 rounded-4">
+                        <div class="card shadow-sm border-0 h-100 rounded-4 hover-shadow" style="transition: transform 0.2s;">
                             <div class="card-body p-4 rounded-4">
-                                <h5 class="fw-bold text-dark mb-3">{{ fw.title }}</h5>
+                                <h5 class="fw-bold text-primary mb-3">{{ fw.title }}</h5>
                                 <p class="text-muted small mb-4">Benchmark module comparing national policies against continental standards.</p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                                    <span class="badge bg-light text-primary border border-primary px-3 py-2 rounded-pill">
                                         {{ fw.count }} Countries Evaluated
                                     </span>
-                                    <a href="/framework/{{ fw.code }}" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">View Rankings →</a>
+                                    <a href="/framework/{{ fw.code }}" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">View Rankings →</a>
                                 </div>
                             </div>
                         </div>
@@ -65,14 +66,14 @@
             
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <div class="text-uppercase text-{{ ranking_data.meta.color }} fw-bold small mb-1">{{ ranking_data.meta.sector }} Sector</div>
-                    <h2 class="fw-bold mb-0 text-dark">{{ ranking_data.meta.title }} Rankings</h2>
+                    <div class="text-uppercase text-secondary fw-bold small mb-1">{{ ranking_data.meta.sector }} Sector</div>
+                    <h2 class="fw-bold mb-0 text-primary">{{ ranking_data.meta.title }} Rankings</h2>
                 </div>
-                <a href="/" class="btn btn-sm btn-outline-secondary rounded-pill px-3">← Back</a>
+                <a href="/" class="btn btn-sm btn-outline-primary rounded-pill px-3">← Back</a>
             </div>
 
             {% if not ranking_data.rankings %}
-                <div class="alert alert-light text-center py-5 border rounded-4 text-muted mt-4">
+                <div class="alert alert-light text-center py-5 border border-primary rounded-4 text-primary mt-4">
                     <h5 class="fw-bold">No countries evaluated yet.</h5>
                     <p class="mb-0">Run a new analysis to populate this framework.</p>
                 </div>
@@ -82,7 +83,7 @@
             <div class="card shadow-sm border-0 mb-4 rounded-4 hover-shadow" style="transition: transform 0.2s;">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-                        <h4 class="fw-bold text-dark mb-0">{{ r.country }}</h4>
+                        <h4 class="fw-bold text-primary mb-0">{{ r.country }}</h4>
                         <span class="badge {% if r.overall_score >= 75 %}bg-success{% elif r.overall_score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6 rounded-pill px-3 shadow-sm">
                             {{ r.overall_score }}% Alignment
                         </span>
@@ -104,7 +105,7 @@
                     </div>
                     
                     <div class="text-end">
-                        <a href="/report/{{ ranking_data.fw_code }}/{{ r.country }}" class="btn btn-sm btn-outline-{{ ranking_data.meta.color }} fw-bold px-4 rounded-pill">
+                        <a href="/report/{{ ranking_data.fw_code }}/{{ r.country }}" class="btn btn-sm btn-outline-primary fw-bold px-4 rounded-pill">
                             Open Full Report →
                         </a>
                     </div>
@@ -118,13 +119,13 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <div class="text-uppercase text-secondary fw-bold small mb-1">{{ report_data.meta.title }}</div>
-                    <h2 class="fw-bold mb-0 text-dark">{{ report_data.country }} Full Report</h2>
+                    <h2 class="fw-bold mb-0 text-primary">{{ report_data.country }} Full Report</h2>
                 </div>
-                <a href="/framework/{{ report_data.fw_code }}" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold">← Back to Rankings</a>
+                <a href="/framework/{{ report_data.fw_code }}" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">← Back to Rankings</a>
             </div>
 
             <div class="card shadow-sm border-0 mb-5 rounded-4 overflow-hidden">
-                <div class="card-header bg-{{ report_data.meta.color | default('dark') }} text-white py-3 px-4">
+                <div class="card-header bg-primary text-white py-3 px-4">
                     <h5 class="mb-0 fw-bold">Detailed Analytics</h5>
                 </div>
                 <div class="card-body p-4 p-md-5">
@@ -149,16 +150,10 @@
         transform: translateY(-4px);
         box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
     }
+    .transition-hover:hover {
+        background-color: #f8f9fa !important;
+        opacity: 1 !important;
+        color: #212529 !important;
+    }
 </style>
-
-<script>
-document.getElementById('refreshKbBtn').addEventListener('click', async function() {
-    this.disabled = true;
-    this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Synchronizing...';
-    try {
-        await fetch('/api/refresh_kb', { method: 'POST' });
-        window.location.reload(); 
-    } catch (err) { alert('Error updating database.'); }
-});
-</script>
 {% endblock %}

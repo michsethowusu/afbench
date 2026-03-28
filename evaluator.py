@@ -73,7 +73,6 @@ def get_file_md5(file_path):
     """Calculates the MD5 signature of a file."""
     hash_md5 = hashlib.md5()
     with open(file_path, "rb") as f:
-        # Read in chunks to handle large PDFs efficiently
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
@@ -226,15 +225,21 @@ def evaluate_framework(file_path, fw_code, filename=None):
     meta = FRAMEWORK_META.get(fw_code)
     if not meta: return pd.DataFrame(), "Invalid framework type.", "", "", "", 0, "Error", "Unknown Country"
     
+    # NEW GUARDRAIL: Prevents crashes if the CSV is missing!
+    criteria_dict = CRITERIA_CACHE.get(fw_code, {})
+    if not criteria_dict:
+        error_msg = f"❌ Error: Could not find the grading rubric for {fw_code}. Please ensure the criteria CSV file exists."
+        return pd.DataFrame(), error_msg, "", "", "", 0, "Error", "Unknown Country"
+
     file_md5 = get_file_md5(file_path)
     kb = load_knowledge_base()
-    criteria_dict = CRITERIA_CACHE[fw_code]
     framework_name = meta["title"]
     
-    color = meta.get('color', 'primary')
+    # Custom color support via inline CSS
+    color = meta.get('color', '#1A365D')
 
     def build_summary_html(strong_list, weak_list):
-        return f"""<div class="mb-4 p-4 bg-light rounded border-start border-4 border-{color}">
+        return f"""<div class="mb-4 p-4 bg-light rounded border-start border-4" style="border-left-color: {color} !important;">
 <h6 class="fw-bold text-dark text-uppercase mb-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">Key Findings</h6>
 <p class="mb-2 text-dark small"><strong><span class="text-success">🟢 Strengths:</span></strong> {', '.join(strong_list) if strong_list else 'None identified'}</p>
 <p class="mb-0 text-dark small"><strong><span class="text-danger">🔴 Priority Areas:</span></strong> {', '.join(weak_list) if weak_list else 'None - all criteria adequate'}</p>
@@ -288,9 +293,6 @@ def evaluate_framework(file_path, fw_code, filename=None):
     strong = df[df['Score'] >= 4]['Label'].tolist()
     weak = df[df['Score'] <= 2]['Label'].tolist()
     
-    # WE REMOVED THE save_to_db BLOCK HERE.
-    # The JSON database will remain pristine. New files go to new_uploads/ but the DB is untouched.
-    
     return df, build_summary_html(strong, weak), f'<img src="data:image/png;base64,{bar_img}" class="img-fluid">', \
            f'<img src="data:image/png;base64,{radar_img}" class="img-fluid">', \
            f'<img src="data:image/png;base64,{gauge_img}" class="img-fluid">', \
@@ -319,7 +321,7 @@ def build_knowledge_base_from_documents():
         try:
             print(f"Scanning: {doc['filename']} for {doc['fw']}...")
             text = extract_text_from_file(doc["path"])
-            file_md5 = get_file_md5(doc["path"]) # Calculate MD5 during initial folder scan
+            file_md5 = get_file_md5(doc["path"]) 
             
             c_dict = CRITERIA_CACHE.get(doc["fw"])
             if not c_dict: continue
@@ -339,7 +341,7 @@ def build_knowledge_base_from_documents():
                 "filename": doc["filename"],
                 "overall_score": round((sum(scores) / (len(c_dict) * 5)) * 100, 1) if c_dict else 0,
                 "scores": results, 
-                "md5": file_md5 # <--- HASH IS SAVED HERE TOO
+                "md5": file_md5
             }
             if "processed_docs" not in kb: kb["processed_docs"] = {}
             kb["processed_docs"][doc_id] = {"mtime": os.path.getmtime(doc["path"])}
@@ -349,7 +351,6 @@ def build_knowledge_base_from_documents():
     return kb
 
 def get_framework_ranking(fw_code):
-    """Fast query to extract rankings, strengths, and weaknesses without generating heavy charts."""
     kb = load_knowledge_base()
     meta = FRAMEWORK_META.get(fw_code)
     c_dict = CRITERIA_CACHE.get(fw_code, {})
@@ -377,7 +378,6 @@ def get_framework_ranking(fw_code):
     return {"meta": meta, "rankings": rankings, "fw_code": fw_code}
 
 def get_single_report(fw_code, country):
-    """Generates the heavy charts and tables for ONE specific country report."""
     kb = load_knowledge_base()
     if country not in kb.get("countries", {}): return None
     fw_data = kb["countries"][country].get(fw_code)
@@ -398,8 +398,9 @@ def get_single_report(fw_code, country):
     strong = df[df['Score'] >= 4]['Label'].tolist()
     weak = df[df['Score'] <= 2]['Label'].tolist()
     
-    color = meta.get('color', 'primary')
-    summary_html = f"""<div class="mb-4 p-4 bg-light rounded border-start border-4 border-{color}">
+    # Custom color support via inline CSS
+    color = meta.get('color', '#1A365D')
+    summary_html = f"""<div class="mb-4 p-4 bg-light rounded border-start border-4" style="border-left-color: {color} !important;">
 <h6 class="fw-bold text-dark text-uppercase mb-3" style="font-size: 0.85rem; letter-spacing: 0.5px;">Key Findings</h6>
 <p class="mb-2 text-dark small"><strong><span class="text-success">🟢 Strengths:</span></strong> {', '.join(strong) if strong else 'None identified'}</p>
 <p class="mb-0 text-dark small"><strong><span class="text-danger">🔴 Priority Areas:</span></strong> {', '.join(weak) if weak else 'None - all criteria adequate'}</p>
